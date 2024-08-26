@@ -1,17 +1,13 @@
 package com.programmersbox.scrcpyviewer
 
-import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedCard
@@ -23,13 +19,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.jaredrummler.ktsh.Shell
-import com.lordcodes.turtle.Arguments
-import com.lordcodes.turtle.Command
-import com.lordcodes.turtle.Executable
 import com.lordcodes.turtle.shellRun
 import com.malinskiy.adam.AndroidDebugBridgeClientFactory
 import com.malinskiy.adam.interactor.StartAdbInteractor
@@ -38,24 +27,17 @@ import com.malinskiy.adam.request.device.Device
 import com.malinskiy.adam.request.device.DeviceState
 import com.malinskiy.adam.request.device.ListDevicesRequest
 import com.malinskiy.adam.request.prop.GetPropRequest
-import com.malinskiy.adam.request.shell.v1.ChanneledShellCommandRequest
-import com.sun.jdi.connect.Connector.Argument
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-import scrcpyviewer.composeapp.generated.resources.Res
-import scrcpyviewer.composeapp.generated.resources.compose_multiplatform
 import java.io.BufferedReader
 import java.io.File
 import java.io.IOException
 import java.io.InputStreamReader
 import java.util.Locale
 import kotlin.getValue
-import kotlin.math.log
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -93,8 +75,10 @@ fun App(
                         ) {
                             Text(it.name)
                             Text(it.model)
+                            Text(it.manufacturer)
                             Text(it.api)
                             Text(it.sdk)
+                            Text(it.device.state.name)
                         }
                     }
                 }
@@ -175,12 +159,15 @@ class AdbRepo {
                                 serial = device.serial
                             )
 
+                            val deviceProductManufacturer =
+                                props["ro.product.manufacturer"]?.singleLine() ?: DETAIL_UNKNOWN
                             val deviceProductName = props["ro.product.name"]?.singleLine() ?: DETAIL_UNKNOWN
                             val deviceProductModel = props["ro.product.model"]?.singleLine() ?: DETAIL_UNKNOWN
-                            val deviceApi = "Api: " + props["ro.build.version.release"]?.singleLine() ?: DETAIL_UNKNOWN
-                            val deviceSdk = "Sdk: " + props["ro.build.version.sdk"]?.singleLine() ?: DETAIL_UNKNOWN
+                            val deviceApi = "Api: " + props["ro.build.version.release"]?.singleLine()
+                            val deviceSdk = "Sdk: " + props["ro.build.version.sdk"]?.singleLine()
 
                             AndroidDevice(
+                                manufacturer = deviceProductManufacturer,
                                 name = deviceProductName,
                                 model = deviceProductModel,
                                 device = device,
@@ -249,13 +236,14 @@ class AdbRepo {
 private fun String.singleLine(): String = replace("\n", "")
 
 data class AndroidDevice(
+    val manufacturer: String,
     val name: String,
     val model: String,
     val device: Device,
     val api: String,
     val sdk: String,
 ) {
-    val deviceInfo = "$name $model Sdk: $sdk Api: $api"
+    val deviceInfo = "$manufacturer $name $model Sdk: $sdk Api: $api"
 }
 
 /**
